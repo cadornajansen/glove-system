@@ -242,7 +242,7 @@ export default function Page() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Left Hand</CardTitle>
+                <CardTitle>Flex Sensor 1</CardTitle>
               </CardHeader>
 
               <CardContent>
@@ -266,7 +266,7 @@ export default function Page() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Right Hand</CardTitle>
+                <CardTitle>Flex Sensor 2</CardTitle>
               </CardHeader>
 
               <CardContent>
