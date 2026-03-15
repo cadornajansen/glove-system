@@ -71,7 +71,7 @@ export default function Page() {
 
   // WebSocket data
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:3001");
+    const ws = new WebSocket("wss://68fd-136-158-59-177.ngrok-free.app/");
 
     ws.onopen = () => setStatus("Connected");
     ws.onclose = () => setStatus("Disconnected");
