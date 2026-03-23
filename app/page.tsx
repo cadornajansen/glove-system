@@ -71,7 +71,7 @@ export default function Page() {
 
   // WebSocket data to connect to the bluetooth of arduino
   useEffect(() => {
-    const ws = new WebSocket("wss://a49f-209-35-160-191.ngrok-free.app");
+    const ws = new WebSocket("wss://d62f-209-35-160-191.ngrok-free.app");
 
     ws.onopen = () => setStatus("Connected");
     ws.onclose = () => setStatus("Disconnected");
