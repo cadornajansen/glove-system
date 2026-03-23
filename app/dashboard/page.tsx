@@ -77,7 +77,7 @@ export default function Page() {
 
   // ---------------- WEBSOCKET ----------------
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:3001");
+    const ws = new WebSocket("wss://a49f-209-35-160-191.ngrok-free.app");
 
     ws.onopen = () => setStatus("Connected");
     ws.onclose = () => setStatus("Disconnected");
@@ -100,14 +100,14 @@ export default function Page() {
 
           // TRUE LATENCY (Arduino → Web)
           if (lastReceiveRef.current !== null) {
-  const interval = now - lastReceiveRef.current;
-  setIntervalMs(Number(interval.toFixed(0)));
-}
+            const interval = now - lastReceiveRef.current;
+            setIntervalMs(Number(interval.toFixed(0)));
+          }
 
-// use interval as your main "latency"
-setLatency(intervalMs ?? null);
+          // use interval as your main "latency"
+          setLatency(intervalMs ?? null);
 
-lastReceiveRef.current = now;
+          lastReceiveRef.current = now;
 
           lastReceiveRef.current = now;
         } catch {

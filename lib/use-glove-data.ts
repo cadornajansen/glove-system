@@ -64,7 +64,7 @@ export function useGloveData() {
   };
 
   useEffect(() => {
-    const ws = new WebSocket("wss://38ca-209-35-160-191.ngrok-free.app");
+    const ws = new WebSocket("wss://a49f-209-35-160-191.ngrok-free.app");
 
     ws.onopen = () => setStatus("WebSocket: Connected");
     ws.onclose = () => setStatus("WebSocket: Disconnected");

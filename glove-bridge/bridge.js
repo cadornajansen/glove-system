@@ -20,6 +20,8 @@ port.on("error", (err) => {
 });
 
 parser.on("data", (line) => {
+  console.log("Received:", line);
+
   line = line.trim();
 
   // basic validation
