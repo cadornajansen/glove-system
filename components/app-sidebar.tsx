@@ -58,7 +58,7 @@ const data = {
     },
     {
       title: "Medication",
-      url: "/medication",
+      url: "/medication/today",
       icon: Pill,
       items: [
         { title: "Today’s Medication", url: "/medication/today" },
@@ -67,7 +67,7 @@ const data = {
     },
     {
       title: "Calendar",
-      url: "/calendar",
+      url: "/calendar/",
       icon: CalendarDays,
       items: [
         { title: "Schedules", url: "/calendar" },
@@ -76,7 +76,7 @@ const data = {
     },
     {
       title: "Reports",
-      url: "/reports",
+      url: "/reports/daily",
       icon: FileText,
       items: [
         { title: "Daily Summary", url: "/reports/daily" },
@@ -85,37 +85,6 @@ const data = {
     },
   ],
 
-  // 🔹 This is NEW (replacing generic "Projects" with medical context)
-  projects: [
-    {
-      name: "Vitals Monitoring",
-      url: "/records/vitals",
-      icon: Activity,
-    },
-    {
-      name: "Care Plans",
-      url: "/care-plans",
-      icon: ClipboardList,
-    },
-    {
-      name: "Analytics",
-      url: "/analytics",
-      icon: BarChart3,
-    },
-  ],
-
-  navSecondary: [
-    {
-      title: "Support",
-      url: "/support",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "/feedback",
-      icon: Send,
-    },
-  ],
 };
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
@@ -141,8 +110,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
 
       <SidebarFooter>

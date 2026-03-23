@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function Page() {
+  // ---------------- STATE ----------------
   const [temperature, setTemperature] = useState<number | null>(null);
   const [flex1, setFlex1] = useState<number | null>(null);
   const [flex2, setFlex2] = useState<number | null>(null);
@@ -38,18 +39,23 @@ export default function Page() {
   const [heartRate, setHeartRate] = useState<number>(72);
   const [spo2, setSpo2] = useState<number>(98);
 
+  const [latency, setLatency] = useState<number | null>(null);
+  const [intervalMs, setIntervalMs] = useState<number | null>(null);
+
   const [status, setStatus] = useState("Connecting...");
 
-  const FLEX1_FLAT = 0;
+  // ✅ FIX: useRef inside component
+  const lastReceiveRef = useRef<number | null>(null);
+
+  // ---------------- FLEX CONFIG ----------------
+  const FLEX1_FLAT = 300;
   const FLEX1_BENT = 1000;
-  const FLEX2_FLAT = 0;
+  const FLEX2_FLAT = 50;
   const FLEX2_BENT = 1000;
 
   const normalizePercent = (value: number, flat: number, bent: number) => {
     let percent = ((value - flat) / (bent - flat)) * 100;
-    if (percent < 0) percent = 0;
-    if (percent > 100) percent = 100;
-    return percent;
+    return Math.min(100, Math.max(0, percent));
   };
 
   const percentToAngle = (percent: number) => percent * 0.9;
@@ -62,22 +68,24 @@ export default function Page() {
 
   const getGesture = (f1: number, f2: number) => {
     if (f1 >= 600 && f2 >= 600) return "HELP";
-    if (f1 >= 600) return "FOOD";
+    if (f1 >= 700) return "FOOD";
     if (f2 >= 600) return "WATER";
-    if (f1 >= 300 && f1 < 600) return "YES";
+    if (f1 >= 500 && f1 < 700) return "YES";
     if (f2 >= 300 && f2 < 600) return "NO";
     return "None";
   };
 
-  // WebSocket data
+  // ---------------- WEBSOCKET ----------------
   useEffect(() => {
-    const ws = new WebSocket("wss://68fd-136-158-59-177.ngrok-free.app/");
+    const ws = new WebSocket("ws://localhost:3001");
 
     ws.onopen = () => setStatus("Connected");
     ws.onclose = () => setStatus("Disconnected");
     ws.onerror = () => setStatus("Error");
 
     ws.onmessage = (event) => {
+      const now = performance.now();
+
       const matches = event.data.match(/\{[^}]*\}/g);
       if (!matches) return;
 
@@ -85,9 +93,23 @@ export default function Page() {
         try {
           const data = JSON.parse(msg);
 
+          // SENSOR DATA
           if (data.temp !== undefined) setTemperature(data.temp);
           if (data.flex1 !== undefined) setFlex1(data.flex1);
           if (data.flex2 !== undefined) setFlex2(data.flex2);
+
+          // TRUE LATENCY (Arduino → Web)
+          if (lastReceiveRef.current !== null) {
+  const interval = now - lastReceiveRef.current;
+  setIntervalMs(Number(interval.toFixed(0)));
+}
+
+// use interval as your main "latency"
+setLatency(intervalMs ?? null);
+
+lastReceiveRef.current = now;
+
+          lastReceiveRef.current = now;
         } catch {
           console.error("Invalid JSON:", msg);
         }
@@ -97,32 +119,24 @@ export default function Page() {
     return () => ws.close();
   }, []);
 
-  // -------- Oximeter Data  --------
+  // ---------------- FAKE OXIMETER ----------------
   useEffect(() => {
     let t = 0;
 
     const interval = setInterval(() => {
       t += 0.2;
 
-      const hrBase = 72;
-      const hrBreathWave = Math.sin(t) * 3;
-      const hrNoise = (Math.random() - 0.5) * 2;
+      const hr = 72 + Math.sin(t) * 3 + (Math.random() - 0.5) * 2;
+      const sp = 98 + (Math.random() - 0.5) * 0.6;
 
-      const newHR = hrBase + hrBreathWave + hrNoise;
-
-      const spo2Base = 98;
-      const spo2Noise = (Math.random() - 0.5) * 0.6;
-
-      const newSpO2 = spo2Base + spo2Noise;
-
-      setHeartRate(Number(newHR.toFixed(0)));
-      setSpo2(Number(newSpO2.toFixed(1)));
-
+      setHeartRate(Number(hr.toFixed(0)));
+      setSpo2(Number(sp.toFixed(1)));
     }, 1000);
 
     return () => clearInterval(interval);
   }, []);
 
+  // ---------------- DERIVED ----------------
   const flex1Percent =
     flex1 !== null ? normalizePercent(flex1, FLEX1_FLAT, FLEX1_BENT) : null;
 
@@ -145,24 +159,23 @@ export default function Page() {
 
   const asymmetryWarning = asymmetry !== null && asymmetry > 30;
 
+  // ---------------- UI ----------------
   return (
     <SidebarProvider>
       <AppSidebar />
 
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b">
+        <header className="flex h-16 items-center gap-2 border-b">
           <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <SidebarTrigger />
+            <Separator orientation="vertical" className="h-4" />
 
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href="#">Smart Glove</BreadcrumbLink>
                 </BreadcrumbItem>
-
                 <BreadcrumbSeparator className="hidden md:block" />
-
                 <BreadcrumbItem>
                   <BreadcrumbPage>Live Monitor</BreadcrumbPage>
                 </BreadcrumbItem>
@@ -171,137 +184,109 @@ export default function Page() {
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col gap-6 p-6 pt-4">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-6 p-6">
+          <div className="flex justify-between items-center">
             <h1 className="text-2xl font-semibold">Smart Glove Live Monitor</h1>
-
-            <Badge variant="outline">
-              WebSocket: {status}
-            </Badge>
+            <Badge variant="outline">WebSocket: {status}</Badge>
           </div>
 
           {/* Gesture */}
-          <Card className="border-blue-500">
+          <Card>
             <CardHeader>
               <CardTitle>Detected Command</CardTitle>
               <CardDescription>Gesture interpretation</CardDescription>
             </CardHeader>
-
             <CardContent>
               <p className="text-4xl font-bold">{gesture}</p>
             </CardContent>
           </Card>
 
-          {/* Vital Signs */}
+          {/* Vitals */}
           <div className="grid gap-4 md:grid-cols-3">
-
             <Card>
               <CardHeader>
                 <CardTitle>Heart Rate</CardTitle>
-                <CardDescription>Pulse (simulated)</CardDescription>
               </CardHeader>
-
               <CardContent>
-                <p className="text-3xl font-bold">
-                  -- BPM
-                </p>
+                <p className="text-3xl font-bold">{heartRate} BPM</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>SpO₂</CardTitle>
-                <CardDescription>Oxygen Saturation</CardDescription>
               </CardHeader>
-
               <CardContent>
-                <p className="text-3xl font-bold">
-                  -- %
-                </p>
+                <p className="text-3xl font-bold">{spo2}%</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>Temperature</CardTitle>
-                <CardDescription>Body temperature</CardDescription>
               </CardHeader>
-
               <CardContent>
                 <p className="text-3xl font-bold">
-                  {temperature !== null
-                    ? `${temperature.toFixed(2)} °C`
-                    : "--"}
+                  {temperature !== null ? `${temperature.toFixed(2)} °C` : "--"}
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Flex Sensors */}
+          {/* Flex */}
           <div className="grid gap-4 md:grid-cols-2">
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Flex Sensor 1</CardTitle>
-              </CardHeader>
-
-              <CardContent>
-                {flex1Percent !== null ? (
-                  <>
-                    <p className="text-3xl font-bold">
-                      {flex1Percent.toFixed(0)}%
-                    </p>
-
-                    <p className="text-sm text-muted-foreground">
-                      ≈ {flex1Angle?.toFixed(0)}°
-                    </p>
-
-                    <p className={getFlexStatus(flex1Percent).color}>
-                      {getFlexStatus(flex1Percent).label}
-                    </p>
-                  </>
-                ) : "--"}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Flex Sensor 2</CardTitle>
-              </CardHeader>
-
-              <CardContent>
-                {flex2Percent !== null ? (
-                  <>
-                    <p className="text-3xl font-bold">
-                      {flex2Percent.toFixed(0)}%
-                    </p>
-
-                    <p className="text-sm text-muted-foreground">
-                      ≈ {flex2Angle?.toFixed(0)}°
-                    </p>
-
-                    <p className={getFlexStatus(flex2Percent).color}>
-                      {getFlexStatus(flex2Percent).label}
-                    </p>
-                  </>
-                ) : "--"}
-              </CardContent>
-            </Card>
+            {[flex1Percent, flex2Percent].map((flex, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <CardTitle>Flex Sensor {i + 1}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {flex !== null ? (
+                    <>
+                      <p className="text-3xl font-bold">{flex.toFixed(0)}%</p>
+                      <p className="text-sm text-muted-foreground">
+                        ≈ {percentToAngle(flex).toFixed(0)}°
+                      </p>
+                      <p className={getFlexStatus(flex).color}>
+                        {getFlexStatus(flex).label}
+                      </p>
+                    </>
+                  ) : (
+                    "--"
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {asymmetryWarning && (
             <Card className="border-red-500">
               <CardHeader>
                 <CardTitle className="text-red-600">
-                  ⚠ Uneven Motor Response Detected
+                  ⚠ Uneven Movement Detected
                 </CardTitle>
-
-                <CardDescription>
-                  Significant difference between left and right movement.
-                </CardDescription>
               </CardHeader>
             </Card>
           )}
+          {/* Responsiveness */}
+          <Card>
+            <CardHeader>
+              <CardTitle>System Responsiveness</CardTitle>
+              <CardDescription>Update speed of incoming data</CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <p className="text-3xl font-bold">{intervalMs ?? "--"} ms</p>
+
+              <p className="text-sm text-muted-foreground">
+                {intervalMs !== null && intervalMs < 150
+                  ? "Real-time"
+                  : intervalMs !== null && intervalMs < 300
+                    ? "Smooth"
+                    : "Delayed"}
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </SidebarInset>
     </SidebarProvider>

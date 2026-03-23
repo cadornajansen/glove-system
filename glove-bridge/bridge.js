@@ -3,7 +3,7 @@ const { ReadlineParser } = require("@serialport/parser-readline");
 const WebSocket = require("ws");
 
 const port = new SerialPort({
-  path: "COM4",      // adjust if needed
+  path: "COM4",
   baudRate: 9600,
 });
 
@@ -22,12 +22,33 @@ port.on("error", (err) => {
 parser.on("data", (line) => {
   line = line.trim();
 
-  // Optional safety check
+  // basic validation
   if (!line.startsWith("{") || !line.endsWith("}")) return;
-  console.log("Received:", line);
+
+  let data;
+
+  try {
+    // 🛠 attempt to fix common corruption
+    line = line
+      .replace(/([a-zA-Z])"([a-zA-Z])/g, '$1","$2') // fix missing comma
+      .replace(/"([a-zA-Z]+)"(?=[a-zA-Z])/g, '"$1":'); // fix missing colon
+
+    data = JSON.parse(line);
+
+  } catch (err) {
+    console.warn("⚠ Skipping corrupted JSON:", line);
+    return; // 🔥 IGNORE instead of crashing
+  }
+
+  // attach server timestamp
+  data.serverTime = Date.now();
+
+  const newLine = JSON.stringify(data);
+
+  // broadcast safely
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(line);
+      client.send(newLine);
     }
   });
 });
