@@ -339,22 +339,8 @@ In short, I handled the technical development that connected the Arduino glove p
 
 ## Dashboard Preview
 
-Add project screenshots inside `/public`, then place them here:
-
 ```md
-![Glove System Live Monitor](./public/preview-live-monitor.png)
-![Glove System Dashboard](./public/preview-dashboard.png)
-![Prototype Setup](./public/prototype-setup.png)
-```
-
-Recommended image files:
-
-```txt
-public/preview-live-monitor.png
-public/preview-dashboard.png
-public/system-architecture.png
-public/prototype-glove.png
-public/prototype-wiring.png
+![Glove System Live Monitor](./public/glove-system-preview.jpeg)
 ```
 
 ---
